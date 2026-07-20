@@ -70,22 +70,18 @@ export default function LandingPage() {
 
   // Pillar 2 & 3 states are encapsulated in CoreCapabilitiesSection.jsx
 
-  // Run mock sign up loader
+  // Run mock sign up loader & redirect to auth
   const handleSignUpClick = () => {
-    setSignUpLoading(true);
-    setTimeout(() => {
-      setSignUpLoading(false);
-      alert("Sign Up action simulated successfully! Component is ready for backend API binding.");
-    }, 1500);
+    window.location.hash = "#auth-signup";
   };
 
-  // Run mock CTA loader
+  // Run mock CTA loader & redirect to auth
   const handleCtaClick = () => {
-    setCtaLoading(true);
-    setTimeout(() => {
-      setCtaLoading(false);
-      alert("Registration triggered! FrameReview is ready to connect to FastAPI Backend.");
-    }, 1500);
+    window.location.hash = "#auth-signup";
+  };
+
+  const handleLogInClick = () => {
+    window.location.hash = "#auth-signin";
   };
 
   // Payment verify actions are encapsulated in CoreCapabilitiesSection.jsx
@@ -129,6 +125,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-4">
             <Button
               variant="ghost"
+              onClick={handleLogInClick}
               className="text-slate-300 hover:text-white hover:bg-white/5 font-medium transition-colors"
             >
               Log In
