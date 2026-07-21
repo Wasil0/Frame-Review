@@ -7,7 +7,17 @@ class Settings(BaseSettings):
     MONGODB_URI: str
     MONGODB_DB_NAME: str
 
-    # AWS S3 Configuration
+    # Supabase Configuration
+    SUPABASE_URL: str = "https://ajwtrgzidgmkfpehyzyp.supabase.co"
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
+
+    # Resend Email API Key
+    RESEND_API_KEY: Optional[str] = None
+
+    # Field Encryption Key (Fernet 32-byte base64 key)
+    ENCRYPTION_KEY: str = "7ytNRekFe_ajlN_1ev-ip7QOoVK1Hg2EexrkKaVWZ2Q="
+
+    # AWS S3 / Storage Configuration
     AWS_ACCESS_KEY_ID: str = "mock-aws-access-key-id"
     AWS_SECRET_ACCESS_KEY: str = "mock-aws-secret-access-key"
     AWS_REGION: str = "us-east-1"

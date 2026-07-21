@@ -1,16 +1,17 @@
-from typing import List
-from beanie import Document, Indexed, PydanticObjectId
-from pydantic import BaseModel, Field
-
-class Workspace(BaseModel):
-    agency_id: PydanticObjectId
-    role: str  # Choices: owner, manager, editor, client
+from datetime import datetime, timezone
+from typing import Optional
+from beanie import Document, PydanticObjectId
+from pydantic import Field
 
 class User(Document):
-    email: Indexed(str, unique=True)
-    name: str
-    is_active: bool = True
-    workspaces: List[Workspace] = Field(default_factory=list)
+    id: str = Field(alias="_id")
+    email: str  # Encrypted string in MongoDB
+    full_name: Optional[str] = None  # Encrypted string in MongoDB
+    role: str = "Owner"  # Choices: "Owner" | "Manager" | "Editor" | "Client"
+    agency_id: Optional[PydanticObjectId] = None
+    job_title: Optional[str] = None
+    must_reset_password: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
         name = "users"

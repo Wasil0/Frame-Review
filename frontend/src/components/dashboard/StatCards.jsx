@@ -5,13 +5,28 @@ import {
   DollarSign,
   TrendingUp,
   Clock,
-  CheckCircle2,
-  Lock,
-  ArrowUpRight
+  Lock
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
+import { useDashboard } from "../../context/DashboardContext";
 
-export default function StatCards({ stats }) {
+export default function StatCards() {
+  const { stats, loading } = useDashboard();
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="bg-[#12131A] border-white/5 p-5 space-y-4 animate-pulse">
+            <div className="h-4 bg-white/5 rounded w-1/2" />
+            <div className="h-8 bg-white/10 rounded w-1/3" />
+            <div className="h-3 bg-white/5 rounded w-2/3" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       
@@ -77,7 +92,7 @@ export default function StatCards({ stats }) {
         <CardContent className="p-5 pt-0 space-y-2">
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-extrabold text-amber-400 tracking-tight font-mono">
-              ${stats.pendingRevenue.toLocaleString()}
+              ${(stats.pendingRevenue || 0).toLocaleString()}
             </span>
             <span className="text-[11px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
               {stats.pendingInvoicesCount} Invoices
@@ -101,7 +116,7 @@ export default function StatCards({ stats }) {
         <CardContent className="p-5 pt-0 space-y-2">
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-extrabold text-[#22C55E] tracking-tight font-mono">
-              ${stats.currentMonthRevenue.toLocaleString()}
+              ${(stats.currentMonthRevenue || 0).toLocaleString()}
             </span>
             <span className="text-[11px] font-bold text-[#22C55E] bg-[#22C55E]/10 px-2 py-0.5 rounded-full border border-[#22C55E]/20">
               {stats.targetProgressPercent}% Target

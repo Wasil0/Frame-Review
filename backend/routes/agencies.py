@@ -1,62 +1,73 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from beanie import PydanticObjectId
-from backend.models.agency import Agency
-from backend.models.user import User, Workspace
-from backend.utils.auth import get_user_context, UserContext
-from backend.utils.masking import mask_agency
 from pydantic import BaseModel
-from typing import Optional
+from backend.models.agency import Agency
+from backend.models.user import User
+from backend.utils.auth import get_current_user
+from backend.utils.serializers import serialize_agency
 
 router = APIRouter(prefix="/agencies", tags=["Agencies"])
 
-class AgencyCreate(BaseModel):
-    company_name: str
-    owner_id: str
-    stripe_account_id: Optional[str] = None
+class AgencyCreatePayload(BaseModel):
+    name: str
+
+class AgencyUpdatePayload(BaseModel):
+    name: str
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_agency(payload: AgencyCreate):
+async def create_agency(payload: AgencyCreatePayload, current_user: User = Depends(get_current_user)):
     """
-    Creates an agency and associates it with the owner user's workspaces.
+    Creates a new agency document for the current user and sets their agency_id.
+    Used by the onboarding popup for new users.
     """
-    try:
-        owner_id = PydanticObjectId(payload.owner_id)
-    except Exception:
+    agency_name = payload.name.strip()
+    if not agency_name:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid owner_id format. Must be a valid 24-character hex string."
+            detail="Agency name is required."
         )
-        
-    owner = await User.get(owner_id)
-    if not owner:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Owner user not found."
-        )
-        
+
     agency = Agency(
-        company_name=payload.company_name,
-        owner_id=owner_id,
-        stripe_account_id=payload.stripe_account_id
+        name=agency_name,
+        owner_id=current_user.id
     )
     await agency.insert()
-    
-    # Associate workspace with owner
-    owner.workspaces.append(Workspace(agency_id=agency.id, role="owner"))
-    await owner.save()
-    
-    # Owner gets unmasked data
-    return mask_agency(agency, "owner")
 
-@router.get("/current")
-async def get_current_agency(ctx: UserContext = Depends(get_user_context)):
+    # Link user's profile to the newly created agency
+    current_user.agency_id = agency.id
+    await current_user.save()
+
+    return serialize_agency(agency)
+
+@router.patch("/{agency_id}", status_code=status.HTTP_200_OK)
+async def update_agency_name(
+    agency_id: str,
+    payload: AgencyUpdatePayload,
+    current_user: User = Depends(get_current_user)
+):
     """
-    Retrieves the current agency based on X-Agency-ID header, applying data masking.
+    Updates the agency name. Requires requesting user role == "Owner" and agency_id match.
     """
-    agency = await Agency.get(ctx.active_agency_id)
-    if not agency:
+    try:
+        aid = PydanticObjectId(agency_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid agency_id format.")
+
+    if current_user.role != "Owner" or current_user.agency_id != aid:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Active agency not found."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. Only the agency Owner can modify agency settings."
         )
-    return mask_agency(agency, ctx.role)
+
+    agency = await Agency.get(aid)
+    if not agency:
+        raise HTTPException(status_code=404, detail="Agency not found.")
+
+    new_name = payload.name.strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="Agency name cannot be empty.")
+
+    agency.name = new_name
+    await agency.save()
+
+    return serialize_agency(agency)

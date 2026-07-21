@@ -3,8 +3,11 @@ import { KeyRound, Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Loader2 } from 
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { useDashboard } from "../../context/DashboardContext";
 
 export default function ChangePasswordCard() {
+  const { changePassword } = useDashboard();
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -15,6 +18,7 @@ export default function ChangePasswordCard() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   // Password strength logic
   const calculateStrength = (pwd) => {
@@ -47,21 +51,26 @@ export default function ChangePasswordCard() {
     isConfirmMatching &&
     !isSubmitting;
 
-  const handleUpdatePassword = (e) => {
+  const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
 
     setIsSubmitting(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
 
-    // TODO: wire to supabase.auth.updateUser({ password: newPassword, current_password: currentPassword }) once backend is connected
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await changePassword(currentPassword, newPassword);
       setSuccessMsg("Password updated successfully");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setTimeout(() => setSuccessMsg(null), 4000);
-    }, 800);
+      setTimeout(() => setSuccessMsg(null), 5000);
+    } catch (err) {
+      setErrorMsg(err.message || "Failed to update password.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -77,6 +86,14 @@ export default function ChangePasswordCard() {
         <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2 animate-in fade-in duration-200">
           <ShieldCheck className="w-4 h-4 shrink-0" />
           <span className="font-semibold">{successMsg}</span>
+        </div>
+      )}
+
+      {/* Error Notification Alert */}
+      {errorMsg && (
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+          <span>⚠️</span>
+          <span>{errorMsg}</span>
         </div>
       )}
 

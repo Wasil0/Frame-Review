@@ -1,21 +1,21 @@
-from typing import List, Literal
+from datetime import datetime, timezone
+from typing import List, Literal, Optional
 from beanie import Document, Indexed, PydanticObjectId
-from pydantic import BaseModel, Field
-
-class ProjectFinancials(BaseModel):
-    total_budget: float
-    advance_percentage: float
-    is_advance_paid: bool = False
-    is_final_paid: bool = False
+from pydantic import Field
 
 class Project(Document):
     agency_id: Indexed(PydanticObjectId)
-    project_name: str
-    status: Literal["In Progress", "Internal Review", "Sent to Client", "Completed"]
-    manager_id: PydanticObjectId
-    assigned_editors: List[PydanticObjectId] = Field(default_factory=list)
-    financials: ProjectFinancials
+    title: str
+    client_org: str
+    client_email: str  # Encrypted string in MongoDB
+    lead_id: Optional[str] = None  # Supabase user_id string
+    editor_ids: List[str] = Field(default_factory=list)  # List of Supabase user_id strings
+    client_ids: List[str] = Field(default_factory=list)  # List of Supabase user_id strings (Client role)
+    status: Literal["active", "completed"] = "active"
+    version: str = "V1"
+    advance_paid: bool = False
+    milestone_paid: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
         name = "projects"
-        # We can also configure additional settings if needed

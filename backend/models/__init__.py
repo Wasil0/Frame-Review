@@ -1,6 +1,7 @@
 from .agency import Agency
-from .user import User, Workspace
-from .project import Project, ProjectFinancials
+from .user import User
+from .project import Project
+from .invoice import Invoice
 from .video import Video
 from .message import Message
 from .notification import Notification
@@ -8,9 +9,8 @@ from .notification import Notification
 __all__ = [
     "Agency",
     "User",
-    "Workspace",
     "Project",
-    "ProjectFinancials",
+    "Invoice",
     "Video",
     "Message",
     "Notification",

@@ -1,95 +1,57 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from beanie import PydanticObjectId
 from backend.models.notification import Notification
-from backend.models.project import Project
-from backend.utils.auth import get_user_context, UserContext
-from pydantic import BaseModel
-from typing import List
+from backend.models.user import User
+from backend.utils.auth import get_current_user
+from backend.utils.serializers import serialize_notification
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
-class NotificationCreate(BaseModel):
-    recipient_id: str
-    title: str
-    message: str
-    project_id: str
+@router.get("", status_code=status.HTTP_200_OK)
+async def get_my_notifications(current_user: User = Depends(get_current_user)):
+    """
+    Returns notifications for the current authenticated user ordered by newest first.
+    """
+    notifs = await Notification.find(
+        Notification.recipient_id == current_user.id
+    ).sort("-created_at").to_list()
 
-class NotificationMarkRead(BaseModel):
-    is_read: bool
+    return [serialize_notification(n) for n in notifs]
 
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=Notification)
-async def create_notification(payload: NotificationCreate, ctx: UserContext = Depends(get_user_context)):
+@router.patch("/read-all", status_code=status.HTTP_200_OK)
+async def mark_all_notifications_read(current_user: User = Depends(get_current_user)):
     """
-    Creates a notification. Validates that the associated project belongs to the tenant.
+    Marks all notifications for current_user as read.
     """
-    try:
-        rid = PydanticObjectId(payload.recipient_id)
-        pid = PydanticObjectId(payload.project_id)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid recipient_id or project_id format."
-        )
-        
-    project = await Project.get(pid)
-    if not project or project.agency_id != ctx.active_agency_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied."
-        )
-        
-    notification = Notification(
-        recipient_id=rid,
-        title=payload.title,
-        message=payload.message,
-        project_id=pid
-    )
-    await notification.insert()
-    return notification
-
-@router.get("", response_model=List[Notification])
-async def list_notifications(ctx: UserContext = Depends(get_user_context)):
-    """
-    Retrieves notifications for the current user under the active agency's projects.
-    """
-    notifications = await Notification.find(
-        Notification.recipient_id == ctx.user.id
+    unread_notifs = await Notification.find(
+        Notification.recipient_id == current_user.id,
+        Notification.read == False
     ).to_list()
-    
-    # Filter to make sure they belong to the current agency
-    project_ids = list({n.project_id for n in notifications})
-    valid_projects = await Project.find({
-        "_id": {"$in": project_ids},
-        "agency_id": ctx.active_agency_id
-    }).to_list()
-    valid_project_ids = {p.id for p in valid_projects}
-    
-    return [n for n in notifications if n.project_id in valid_project_ids]
 
-@router.put("/{notification_id}/read", response_model=Notification)
+    for n in unread_notifs:
+        n.read = True
+        await n.save()
+
+    return {"success": True, "count": len(unread_notifs)}
+
+@router.patch("/{notification_id}/read", status_code=status.HTTP_200_OK)
 async def mark_notification_read(
     notification_id: str,
-    payload: NotificationMarkRead,
-    ctx: UserContext = Depends(get_user_context)
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Marks a notification as read or unread.
+    Marks a single notification as read.
     """
     try:
         nid = PydanticObjectId(notification_id)
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid notification_id format."
-        )
-        
-    notification = await Notification.get(nid)
-    if not notification or notification.recipient_id != ctx.user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification not found."
-        )
-        
-    notification.is_read = payload.is_read
-    await notification.save()
-    return notification
+        raise HTTPException(status_code=400, detail="Invalid notification_id format.")
+
+    notif = await Notification.get(nid)
+    if not notif or notif.recipient_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Notification not found or access denied.")
+
+    notif.read = True
+    await notif.save()
+
+    return serialize_notification(notif)

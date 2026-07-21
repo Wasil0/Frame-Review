@@ -5,7 +5,7 @@ if not hasattr(AsyncIOMotorClient, "append_metadata"):
     AsyncIOMotorClient.append_metadata = lambda self, *args, **kwargs: None
 
 from beanie import init_beanie
-from backend.models import Agency, User, Project, Video, Message, Notification
+from backend.models import Agency, User, Project, Invoice, Video, Message, Notification
 
 async def init_db(connection_string: str, database_name: str):
     """
@@ -20,6 +20,7 @@ async def init_db(connection_string: str, database_name: str):
             Agency,
             User,
             Project,
+            Invoice,
             Video,
             Message,
             Notification,

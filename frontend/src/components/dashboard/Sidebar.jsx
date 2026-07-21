@@ -14,31 +14,41 @@ import {
   Building2
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
+import { useDashboard } from "../../context/DashboardContext";
 
-export default function Sidebar({ activeTab, setActiveTab, session }) {
+export default function Sidebar({ activeTab, setActiveTab }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { userProfile, stats, teamMembers, projects, resetContextState } = useDashboard();
 
   const handleSignOut = async () => {
+    if (resetContextState) {
+      resetContextState();
+    }
     await supabase.auth.signOut();
     window.location.hash = "#auth-signin";
   };
 
-  const userEmail = session?.user?.email || "";
-  const userFullName = session?.user?.user_metadata?.full_name || (userEmail ? userEmail.split("@")[0] : "Wasil (Agency Owner)");
-  const avatarLetter = (userFullName[0] || "W").toUpperCase();
+  const userFullName = userProfile?.full_name || userProfile?.email?.split("@")[0] || "User";
+  const agencyName = userProfile?.agency_name || "Agency Workspace";
+  const avatarLetter = (userFullName[0] || "U").toUpperCase();
 
   const currentUser = {
     name: userFullName,
-    agency: "Apex Motion Studios",
+    agency: agencyName,
     avatar: avatarLetter,
-    role: "Owner"
+    role: userProfile?.role || "Owner"
   };
 
   const navItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "projects", label: "Active Projects", icon: FolderKanban, badge: "14" },
-    { id: "team", label: "Team Allocation", icon: Users, badge: "5" },
-    { id: "revenue", label: "Financials & Revenue", icon: DollarSign, badge: "$18.4k" },
+    { id: "projects", label: "Active Projects", icon: FolderKanban, badge: projects.length.toString() },
+    { id: "team", label: "Team Allocation", icon: Users, badge: teamMembers.length.toString() },
+    {
+      id: "revenue",
+      label: "Financials & Revenue",
+      icon: DollarSign,
+      badge: `$${(stats.pendingRevenue || 0).toLocaleString()}`
+    },
     { id: "history", label: "Project History", icon: History },
     { id: "settings", label: "Agency Settings", icon: Settings }
   ];
@@ -69,8 +79,8 @@ export default function Sidebar({ activeTab, setActiveTab, session }) {
               <span className="font-extrabold text-lg tracking-tight text-white leading-none">
                 Frame<span className="text-[#22C55E]">Review</span>
               </span>
-              <span className="text-[10px] text-emerald-400 font-semibold font-mono mt-1 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> Owner Workspace
+              <span className="text-[10px] text-emerald-400 font-semibold font-mono mt-1 flex items-center gap-1 truncate">
+                <ShieldCheck className="w-3 h-3 shrink-0" /> {currentUser.role} Portal
               </span>
             </div>
           )}
@@ -151,7 +161,7 @@ export default function Sidebar({ activeTab, setActiveTab, session }) {
             <div className="flex-1 min-w-0 animate-in fade-in duration-200">
               <p className="text-xs font-bold text-white truncate leading-none">{currentUser.name}</p>
               <p className="text-[10px] text-slate-400 truncate mt-1 flex items-center gap-1">
-                <Building2 className="w-3 h-3 text-[#22C55E]" /> {currentUser.agency}
+                <Building2 className="w-3 h-3 text-[#22C55E] shrink-0" /> {currentUser.agency}
               </p>
             </div>
           )}
