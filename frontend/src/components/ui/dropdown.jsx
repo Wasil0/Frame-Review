@@ -37,7 +37,7 @@ export function DropdownSelect({
       left: rect.left,
       width: rect.width,
       flipUp,
-      maxHeight: flipUp ? Math.min(spaceAbove - 16, 260) : Math.min(spaceBelow - 16, 260)
+      maxHeight: Math.max(160, flipUp ? Math.min(spaceAbove - 16, 260) : Math.min(spaceBelow - 16, 260))
     };
   };
 
@@ -149,7 +149,7 @@ export function DropdownSelect({
                 : { top: `${coords.top}px` }),
               maxHeight: `${coords.maxHeight}px`
             }}
-            className="bg-[#12131A] border border-white/10 rounded-xl shadow-2xl p-1.5 z-[9999] animate-in fade-in slide-in-from-top-1 duration-150 overflow-y-auto space-y-0.5"
+            className="bg-[#12131A] border border-white/10 rounded-xl shadow-2xl p-1.5 z-[100000] animate-in fade-in slide-in-from-top-1 duration-150 overflow-y-auto space-y-0.5"
           >
             {options.map((opt) => {
               const optVal = opt.value !== undefined ? opt.value : opt.id;
@@ -299,7 +299,7 @@ export function Dropdown({
               maxHeight: `${coords.maxHeight}px`
             }}
             className={cn(
-              "bg-[#12131A] border border-white/10 rounded-xl shadow-2xl p-1.5 z-[9999] animate-in fade-in slide-in-from-top-1 duration-150 overflow-y-auto space-y-0.5 text-left",
+              "bg-[#12131A] border border-white/10 rounded-xl shadow-2xl p-1.5 z-[100000] animate-in fade-in slide-in-from-top-1 duration-150 overflow-y-auto space-y-0.5 text-left",
               width
             )}
           >
