@@ -13,15 +13,24 @@ import {
   ShieldCheck,
   Building2
 } from "lucide-react";
+import { supabase } from "../../lib/supabaseClient";
 
-export default function Sidebar({ activeTab, setActiveTab }) {
+export default function Sidebar({ activeTab, setActiveTab, session }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // TODO: replace with API call - Current authenticated user / agency context
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.hash = "#auth-signin";
+  };
+
+  const userEmail = session?.user?.email || "";
+  const userFullName = session?.user?.user_metadata?.full_name || (userEmail ? userEmail.split("@")[0] : "Wasil (Agency Owner)");
+  const avatarLetter = (userFullName[0] || "W").toUpperCase();
+
   const currentUser = {
-    name: "Wasil (Agency Owner)",
+    name: userFullName,
     agency: "Apex Motion Studios",
-    avatar: "W",
+    avatar: avatarLetter,
     role: "Owner"
   };
 
@@ -148,20 +157,28 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           )}
 
           {!isCollapsed && (
-            <a
-              href="#auth-signin"
-              className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
-            </a>
+            </button>
           )}
 
           {/* User Profile Tooltip on Collapsed Mode */}
           {isCollapsed && (
-            <div className="absolute left-full ml-3 px-3 py-2 bg-[#1A1B23] text-white text-xs font-semibold rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 border border-white/10 space-y-0.5">
+            <div className="absolute left-full ml-3 px-3 py-2 bg-[#1A1B23] text-white text-xs font-semibold rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 border border-white/10 space-y-1">
               <p className="font-bold text-white">{currentUser.name}</p>
               <p className="text-[10px] text-slate-400 font-normal">{currentUser.agency}</p>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="w-full text-left pt-1 border-t border-white/10 text-[10px] text-red-400 hover:text-red-300 font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <LogOut className="w-3 h-3" /> Sign Out
+              </button>
             </div>
           )}
         </div>

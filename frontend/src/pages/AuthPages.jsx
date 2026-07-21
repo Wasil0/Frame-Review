@@ -16,6 +16,7 @@ import {
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { supabase } from "../lib/supabaseClient";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DISPOSABLE_DOMAINS = [
@@ -44,6 +45,7 @@ export default function AuthPages({ initialTab = "signup" }) {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [authSuccess, setAuthSuccess] = useState(null);
+  const [authError, setAuthError] = useState(null);
 
   // Email validation helper
   const getEmailError = (val) => {
@@ -68,46 +70,106 @@ export default function AuthPages({ initialTab = "signup" }) {
   const isPasswordMatched = password && confirmPassword && password === confirmPassword;
   const isPasswordMismatched = confirmPassword && password !== confirmPassword;
 
-  // Simulate Google OAuth Sign-in
-  const handleGoogleAuth = () => {
+  // Google OAuth Sign-in
+  const handleGoogleAuth = async () => {
     setLoading(true);
-    setTimeout(() => {
+    setAuthError(null);
+    setAuthSuccess(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      if (error) {
+        setAuthError(error.message);
+        setLoading(false);
+      }
+    } catch (err) {
+      setAuthError(err.message || "An error occurred with Google auth.");
       setLoading(false);
-      setAuthSuccess("Redirecting to Google Secure Authentication...");
-      setTimeout(() => setAuthSuccess(null), 3000);
-    }, 1200);
+    }
   };
 
   // Sign Up Submission Handler
-  const handleSignUpSubmit = (e) => {
+  const handleSignUpSubmit = async (e) => {
     e.preventDefault();
     setEmailTouched(true);
-    if (!isEmailValid || isPasswordMismatched || !fullName || !password) return;
+    setAuthError(null);
+    setAuthSuccess(null);
+
+    if (!isEmailValid || isPasswordMismatched || !fullName || !password || !confirmPassword) return;
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            full_name: fullName.trim()
+          }
+        }
+      });
+
+      if (error) {
+        let msg = error.message;
+        if (msg.toLowerCase().includes("user already registered") || msg.toLowerCase().includes("already registered")) {
+          msg = "An account with this email address already exists.";
+        }
+        setAuthError(msg);
+      } else {
+        if (data?.session) {
+          window.location.hash = "#dashboard";
+        } else {
+          setAuthSuccess("Account created! Check your email to confirm.");
+        }
+      }
+    } catch (err) {
+      setAuthError(err.message || "An unexpected error occurred during sign up.");
+    } finally {
       setLoading(false);
-      setAuthSuccess(`Welcome aboard, ${fullName}! Your FrameReview agency account was created successfully.`);
-    }, 1500);
+    }
   };
 
   // Sign In Submission Handler
-  const handleSignInSubmit = (e) => {
+  const handleSignInSubmit = async (e) => {
     e.preventDefault();
     setEmailTouched(true);
+    setAuthError(null);
+    setAuthSuccess(null);
+
     if (!isEmailValid || !password) return;
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      });
+
+      if (error) {
+        let msg = error.message;
+        if (msg.toLowerCase().includes("invalid login credentials")) {
+          msg = "Incorrect email or password.";
+        }
+        setAuthError(msg);
+      } else {
+        window.location.hash = "#dashboard";
+      }
+    } catch (err) {
+      setAuthError(err.message || "An unexpected error occurred during sign in.");
+    } finally {
       setLoading(false);
-      setAuthSuccess("Authenticated successfully! Loading your agency workspace...");
-    }, 1500);
+    }
   };
 
   // Reset form when switching tabs
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setAuthSuccess(null);
+    setAuthError(null);
     setEmail("");
     setEmailTouched(false);
     setPassword("");
@@ -232,11 +294,19 @@ export default function AuthPages({ initialTab = "signup" }) {
               </TabsList>
             </Tabs>
 
-            {/* Dynamic Notification Message */}
+            {/* Dynamic Success Message */}
             {authSuccess && (
               <div className="p-[clamp(0.35rem,0.8vh,0.6rem)] text-[clamp(0.65rem,1.15vh,0.75rem)] rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-2 shrink-0 animate-in fade-in duration-200">
                 <ShieldCheck className="w-4 h-4 shrink-0" />
                 <p className="leading-tight">{authSuccess}</p>
+              </div>
+            )}
+
+            {/* Dynamic Error Message */}
+            {authError && (
+              <div className="p-[clamp(0.35rem,0.8vh,0.6rem)] text-[clamp(0.65rem,1.15vh,0.75rem)] rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2 shrink-0 animate-in fade-in duration-200 font-medium">
+                <span className="shrink-0">⚠️</span>
+                <p className="leading-tight">{authError}</p>
               </div>
             )}
 

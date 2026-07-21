@@ -1,5 +1,3 @@
-// TEMP: auth guard disabled for local UI testing — re-enable route protection before deploying or connecting real backend.
-
 import React, { useState } from "react";
 import Sidebar from "../components/dashboard/Sidebar";
 import TopNav from "../components/dashboard/TopNav";
@@ -40,7 +38,7 @@ const leadOptions = [
   { value: "Elena Rostova", label: "Elena Rostova (VFX)", icon: User }
 ];
 
-export default function Dashboard() {
+export default function Dashboard({ session }) {
   const [activeTab, setActiveTab] = useState("overview");
   
   // TODO: replace with API call - State for active projects & team members
@@ -119,7 +117,7 @@ export default function Dashboard() {
     <div className="flex h-screen w-screen bg-[#090A0F] text-slate-100 font-sans antialiased overflow-hidden selection:bg-[#22C55E]/30 selection:text-white">
       
       {/* LEFT NAVIGATION SIDEBAR */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} session={session} />
 
       {/* RIGHT MAIN DASHBOARD CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#090A0F] relative">
